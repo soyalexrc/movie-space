@@ -1,39 +1,86 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+// import * as Font from 'expo-font';
+import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
+import {Stack} from "expo-router";
+import {Suspense, useCallback, useEffect, useState} from "react";
+import {ActivityIndicator, View} from "react-native";
+import {Colors} from "@/config/theme/colors";
+import {SQLiteProvider, openDatabaseSync} from 'expo-sqlite';
+import {drizzle} from 'drizzle-orm/expo-sqlite';
+import {useMigrations} from 'drizzle-orm/expo-sqlite/migrator';
+import migrations from '@/core/db/drizzle/migrations';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+const queryClient = new QueryClient();
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
+export const DATABASE_NAME = 'mddb';
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+    const expoDb = openDatabaseSync(DATABASE_NAME);
+    const db = drizzle(expoDb);
+    const {success, error} = useMigrations(db, migrations);
 
-  useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    // Keep the splash screen visible while we fetch resources
+    SplashScreen.preventAutoHideAsync();
 
-  if (!loaded) {
-    return null;
-  }
+// Set the animation options. This is optional.
+    SplashScreen.setOptions({
+        duration: 2000,
+        fade: true,
+    });
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+    // useEffect(() => {
+    //     async function prepare() {
+    //         try {
+    //             // Pre-load fonts, make any API calls you need to do here
+    //             // await Font.loadAsync(Entypo.font);
+    //             // Artificially delay for two seconds to simulate a slow loading
+    //             // experience. Remove this if you copy and paste the code!
+    //             await new Promise(resolve => setTimeout(resolve, 2000));
+    //         } catch (e) {
+    //             console.warn(e);
+    //         } finally {
+    //             // Tell the application to render
+    //             setAppIsReady(true);
+    //         }
+    //     }
+    //
+    //     prepare();
+    // }, []);
+
+    // const onLayoutRootView = useCallback(() => {
+    //     if (appIsReady) {
+    //         // This tells the splash screen to hide immediately! If we call this after
+    //         // `setAppIsReady`, then we may see a blank screen while the app is
+    //         // loading its initial state and rendering its first pixels. So instead,
+    //         // we hide the splash screen once we know the root view has already
+    //         // performed layout.
+    //         SplashScreen.hide();
+    //     }
+    // }, [appIsReady]);
+
+    // if (!appIsReady) {
+    //     return null;
+    // }
+
+
+    return (
+        <Suspense fallback={<ActivityIndicator size="large"/>}>
+            <SQLiteProvider
+                databaseName={DATABASE_NAME}
+                options={{enableChangeListener: true}}
+                useSuspense>
+                <QueryClientProvider client={queryClient}>
+                    <Stack screenOptions={{headerShown: false}}>
+                        <Stack.Screen name="createList" options={{
+                            presentation: 'formSheet',
+                            sheetCornerRadius: 12,
+                            sheetAllowedDetents: 'fitToContents',
+                            sheetGrabberVisible: false,
+                        }} />
+                    </Stack>
+                </QueryClientProvider>
+            </SQLiteProvider>
+        </Suspense>
+
+    )
 }

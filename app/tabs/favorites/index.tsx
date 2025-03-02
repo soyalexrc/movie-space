@@ -123,7 +123,7 @@ export default function Screen() {
                         ))
                     }
 
-                    <TouchableOpacity onPress={() => router.push('/tabs/favorites/createList')} style={{ backgroundColor: 'lightgray', borderRadius: 12, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', height: 30 }} >
+                    <TouchableOpacity onPress={() => router.push('/createList')} style={{ backgroundColor: 'lightgray', borderRadius: 12, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', height: 30 }} >
                         <Text style={{ fontWeight: 'bold' }}>Nueva lista + </Text>
                     </TouchableOpacity>
 
